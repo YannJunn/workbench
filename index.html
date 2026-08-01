@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a1612" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="工作台" />
+  <title>Slytherin 工作台</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css?v=12" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <button id="menuBtn" class="icon-btn" aria-label="菜单">☰</button>
+      <span class="topbar-title">🐍 Slytherin 工作台</span>
+      <div class="topbar-actions">
+        <button id="syncBtn" class="icon-btn" aria-label="同步" title="云端同步">☁</button>
+        <button id="themeBtn" class="icon-btn" aria-label="主题" title="切换主题">◐</button>
+        <button id="menuMoreBtn" class="icon-btn" aria-label="更多">⋯</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-head">
+          <span class="sidebar-crest">🐍</span>
+          <span class="sidebar-title">Slytherin</span>
+          <button id="addTaskBtn" class="add-task-btn" title="新增一级任务">＋ 任务</button>
+        </div>
+        <nav id="taskList" class="task-list"></nav>
+        <div class="sidebar-foot">
+          <button id="exportBtn" class="foot-btn">导出</button>
+          <button id="importBtn" class="foot-btn">导入</button>
+          <input type="file" id="importFile" accept="application/json" hidden />
+        </div>
+        <button id="sidebarSyncBtn" class="sidebar-sync-btn" title="云端同步（Supabase）">☁ 云端同步</button>
+      </aside>
+      <div id="overlay" class="overlay"></div>
+
+      <main class="main">
+        <!-- 任务视图 -->
+        <div id="taskView">
+          <div id="taskHeader" class="task-header">
+            <input id="taskNameInput" class="task-name-input" />
+            <div class="task-tools">
+              <button id="addSubBtn" class="tool-btn">＋子任务</button>
+              <button id="renameTaskBtn" class="tool-btn">重命名</button>
+              <button id="deleteTaskBtn" class="tool-btn danger">删除</button>
+            </div>
+          </div>
+
+          <section class="panel panel-notes">
+            <div class="panel-label"><span class="icon">📜</span> 笔记</div>
+            <div class="editor-toolbar" id="editorToolbar">
+              <button data-cmd="bold" title="加粗"><b>B</b></button>
+              <button data-cmd="italic" title="斜体"><i>I</i></button>
+              <button data-cmd="underline" title="下划线"><u>U</u></button>
+              <span class="tb-sep"></span>
+              <button data-cmd="formatBlock" data-val="H2" title="标题">H</button>
+              <button data-cmd="formatBlock" data-val="P" title="正文">¶</button>
+              <span class="tb-sep"></span>
+              <button data-cmd="insertUnorderedList" title="项目符号">•</button>
+              <button data-cmd="insertOrderedList" title="编号">1.</button>
+              <span class="tb-sep"></span>
+              <button data-cmd="createLink" title="链接">🔗</button>
+              <button data-cmd="removeFormat" title="清除格式">⌫</button>
+            </div>
+            <div id="notesEditor" class="notes-editor" contenteditable="true" spellcheck="false"></div>
+          </section>
+
+          <section class="panel panel-items">
+            <div class="panel-label"><span class="icon">⚔</span> 清单 / 条目</div>
+            <div id="itemsList" class="items-list"></div>
+            <div class="add-item">
+              <input id="newItemInput" class="new-item-input" placeholder="添加一条清单项，回车保存…" />
+              <button id="addItemBtn" class="tool-btn">添加</button>
+            </div>
+          </section>
+
+          <!-- 班级管理（仅学生管理类任务显示） -->
+          <section class="panel panel-classes" id="classesPanel" hidden>
+            <div class="panel-label"><span class="icon">🏰</span> 班级管理</div>
+            <div id="classCards" class="class-cards"></div>
+            <button id="addClassBtn" class="tool-btn">＋ 添加班级</button>
+          </section>
+
+          <!-- 资讯卡片（仅 news 类任务显示） -->
+          <section class="panel panel-news" id="newsPanel" hidden>
+            <div class="panel-label"><span class="icon">🔮</span> <span id="newsPanelLabel">资讯</span></div>
+            <div id="newsCards" class="news-cards"></div>
+          </section>
+
+          <!-- 文件存档 -->
+          <section class="panel panel-files">
+            <div class="panel-label"><span class="icon">🗄</span> 文件存档</div>
+            <button id="uploadFileBtn" class="tool-btn">＋ 上传文件</button>
+            <input type="file" id="fileInput" multiple hidden />
+            <div id="fileList" class="file-list"></div>
+          </section>
+        </div>
+
+        <!-- 班级详情视图 -->
+        <div id="classView" hidden>
+          <div class="class-detail-head">
+            <button id="backClassBtn" class="tool-btn">← 返回</button>
+            <span id="classNameTitle" class="class-title"></span>
+            <div class="task-tools">
+              <button id="addStudentBtn" class="tool-btn">＋ 学生</button>
+              <button id="importStudentBtn" class="tool-btn">导入Excel</button>
+              <button id="exportStudentBtn" class="tool-btn">导出Excel</button>
+              <button id="tplStudentBtn" class="tool-btn">下载模版</button>
+            </div>
+          </div>
+          <div class="class-tools">
+            <input id="studentFilter" class="new-item-input" placeholder="搜索学生（按任意字段）…" />
+            <button id="colToggleBtn" class="tool-btn">列设置</button>
+            <div id="colTogglePanel" class="col-toggle-panel" hidden></div>
+          </div>
+          <div class="table-wrap">
+            <table id="studentTable" class="student-table"></table>
+          </div>
+          <input type="file" id="studentFile" accept=".xlsx,.xls" hidden />
+        </div>
+      </main>
+    </div>
+
+    <div id="saveToast" class="save-toast">已保存</div>
+  </div>
+
+  <!-- 云端同步弹窗 -->
+  <div id="syncModal" class="modal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <span>云端同步（Supabase）</span>
+        <button id="syncClose" class="icon-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="field">
+          <span>Supabase URL</span>
+          <input id="sbUrlInput" placeholder="https://xxxx.supabase.co" />
+        </label>
+        <label class="field">
+          <span>Anon Key（公开，仅存本地浏览器）</span>
+          <input type="password" id="sbKeyInput" placeholder="eyJhbGci..." />
+        </label>
+        <label class="field">
+          <span>看板 ID（多端保持一致，默认 default）</span>
+          <input id="sbBoardInput" placeholder="default" />
+        </label>
+        <label class="field">
+          <span>访问口令（可选，多端需一致；用于简单隔离）</span>
+          <input type="password" id="sbPassInput" placeholder="留空 = 不加密" />
+        </label>
+        <label class="field check">
+          <input type="checkbox" id="autoSyncInput" />
+          <span>内容变更后自动同步（实时 + 落盘即传）</span>
+        </label>
+        <div class="sync-status" id="syncStatus">未连接</div>
+        <div class="modal-actions">
+          <button id="testBtn" class="tool-btn">测试连接</button>
+          <button id="pushBtn" class="tool-btn primary">上传到云端</button>
+          <button id="pullBtn" class="tool-btn">从云端拉取</button>
+        </div>
+        <p class="hint">在 Supabase → SQL Editor 执行建表：<br />
+          <code>create table workbench ( id text primary key, data jsonb not null, passcode text, updated_at timestamptz default now() );<br />
+          alter table workbench enable row level security;<br />
+          create policy "anon_all" on workbench for all to anon using (true) with check (true);</code><br />
+          anon key 可公开；如需更严格隔离，可开启邮箱登录并在策略里按 auth.uid() 过滤。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 通用弹窗（替代 prompt/confirm/alert）-->
+  <div id="dialogModal" class="modal" hidden>
+    <div class="modal-card dialog-card">
+      <div class="modal-head">
+        <span id="dialogTitle">提示</span>
+      </div>
+      <div class="modal-body">
+        <p id="dialogMsg" class="dialog-msg"></p>
+        <input id="dialogInput" class="dialog-input" type="text" hidden />
+      </div>
+      <div class="modal-actions dialog-actions">
+        <button id="dialogCancel" class="tool-btn">取消</button>
+        <button id="dialogOk" class="tool-btn primary">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 学生信息名片 -->
+  <div id="studentCardModal" class="modal" hidden>
+    <div class="modal-card student-card">
+      <div class="modal-head">
+        <span>🜲 <span id="studentCardName"></span></span>
+        <button id="studentCardClose" class="icon-btn">✕</button>
+      </div>
+      <div class="modal-body student-card-body">
+        <div id="studentCardFields" class="card-fields"></div>
+        <div class="card-notes-section">
+          <label class="card-notes-label">🜔 碎片备注</label>
+          <textarea id="studentCardNotes" class="card-notes-area" placeholder="随时记录该学生的碎片信息，如谈话记录、表现备注、家长沟通等…"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions" style="padding:0 16px 16px;">
+        <button id="studentCardOk" class="tool-btn primary">完成</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=12"></script>
+</body>
+</html>
