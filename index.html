@@ -93,6 +93,19 @@
             <div id="newsCards" class="news-cards"></div>
           </section>
 
+          <!-- 课时记录（仅 classhour 类任务显示） -->
+          <section class="panel panel-classhour" id="classhourPanel" hidden>
+            <div class="panel-label"><span class="icon">⏱</span> 课时记录</div>
+            <div class="ch-summary" id="classhourSummary"></div>
+            <div class="ch-toolbar">
+              <button id="addRoutineClassBtn" class="tool-btn primary">＋ 新增常规课时</button>
+              <button id="addExtraClassBtn" class="tool-btn">＋ 新增临时加课</button>
+              <button id="exportClasshourBtn" class="tool-btn">⬇ 导出 Excel</button>
+              <span class="ch-toolbar-hint">常规 = 按课表安排；临时 = 课表外追加</span>
+            </div>
+            <div id="classhourMonths" class="ch-months"></div>
+          </section>
+
           <!-- 文件存档 -->
           <section class="panel panel-files">
             <div class="panel-label"><span class="icon">🗄</span> 文件存档</div>

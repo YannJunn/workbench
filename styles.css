@@ -567,3 +567,123 @@ input, textarea { font-family: inherit; }
   .main { padding: 16px 14px 40px; }
   .task-name-input { font-size: 20px; }
 }
+
+/* ============================================
+   课时记录面板
+   ============================================ */
+.panel-classhour { padding: 0; }
+.ch-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 12px 0 16px;
+}
+.ch-stat {
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--primary);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ch-stat-extra { border-left-color: var(--accent-gold); }
+.ch-stat-total { border-left-color: var(--accent-bronze); background: var(--surface-3); }
+.ch-stat-num { font-size: 26px; font-weight: 600; color: var(--text); font-family: var(--font-serif); }
+.ch-stat-label { font-size: 12px; color: var(--text-soft); letter-spacing: 0.05em; }
+
+.ch-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--border-soft);
+}
+.ch-toolbar-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: 4px;
+}
+
+.ch-months { display: flex; flex-direction: column; gap: 16px; }
+.ch-month-block {
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.ch-month-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--surface-3);
+  border-bottom: 1px solid var(--border-soft);
+}
+.ch-month-title { font-size: 14px; font-weight: 600; color: var(--text); font-family: var(--font-serif); }
+.ch-month-meta { font-size: 12px; color: var(--text-soft); }
+.ch-month-meta b { color: var(--text); font-weight: 600; margin: 0 2px; }
+.ch-month-meta b + b { color: var(--accent-gold); }
+
+.ch-table-wrap { overflow-x: auto; }
+.ch-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ch-table th {
+  background: var(--bg-2);
+  color: var(--text-soft);
+  font-weight: 500;
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-soft);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+.ch-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text);
+  white-space: nowrap;
+}
+.ch-table tbody tr:last-child td { border-bottom: none; }
+.ch-table tbody tr:hover { background: var(--surface-3); }
+
+.ch-tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+.ch-tag-routine { background: rgba(58, 155, 110, 0.15); color: var(--primary); border: 1px solid rgba(58, 155, 110, 0.3); }
+.ch-tag-extra { background: rgba(201, 168, 76, 0.15); color: var(--accent-gold); border: 1px solid rgba(201, 168, 76, 0.3); }
+
+.ch-del-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.ch-del-btn:hover { background: rgba(199, 84, 80, 0.15); }
+
+.ch-empty {
+  color: var(--text-soft);
+  text-align: center;
+  padding: 32px 0;
+  font-size: 14px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border-soft);
+  border-radius: 10px;
+}
+
+@media (max-width: 600px) {
+  .ch-summary { grid-template-columns: 1fr; }
+  .ch-table { font-size: 12px; }
+  .ch-table th, .ch-table td { padding: 6px 8px; }
+}

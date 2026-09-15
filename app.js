@@ -40,6 +40,25 @@
       notes: "", items: [], children: [], classes: [],
     };
   }
+  // ---------- 课时记录：预填种子数据（9 月常规 + 8.20 临时加课） ----------
+  function seedRoutineClasses() {
+    return [
+      { id: uid(), date: "2026-08-25", courseName: "建筑实训", hours: 2, location: "建筑实训室", note: "" },
+      { id: uid(), date: "2026-08-31", courseName: "建筑实训", hours: 2, location: "建筑实训室", note: "" },
+      { id: uid(), date: "2026-09-02", courseName: "救援实训", hours: 2, location: "救援实训室", note: "" },
+      { id: uid(), date: "2026-09-04", courseName: "建筑实训", hours: 2, location: "建筑实训室", note: "" },
+      { id: uid(), date: "2026-09-08", courseName: "救援实训", hours: 2, location: "救援实训室", note: "" },
+      { id: uid(), date: "2026-09-11", courseName: "建筑实训", hours: 2, location: "建筑实训室", note: "" },
+      { id: uid(), date: "2026-09-16", courseName: "建筑实训", hours: 2, location: "建筑实训室", note: "" },
+      { id: uid(), date: "2026-09-16", courseName: "救援实训", hours: 2, location: "救援实训室", note: "" },
+      { id: uid(), date: "2026-09-17", courseName: "建筑实训", hours: 2, location: "建筑实训室", note: "" },
+    ];
+  }
+  function seedExtraClasses() {
+    return [
+      { id: uid(), date: "2026-08-20", courseName: "临时加课", hours: 4, note: "8.20 临时上课 4 节" },
+    ];
+  }
   // ---------- 韩国高校硕士招生预置数据 ----------
   const KOREAN_UNI_DATA = [
     {
@@ -256,6 +275,12 @@
           const p = mkNode("绵飞院", "#3a9b6e");
           p.children = [
             mkNode("教学", "#5b8db8"),
+            (function () {
+              const ch = mkNode("课时记录", "#a06cd5", "classhour");
+              ch.routineClasses = seedRoutineClasses();
+              ch.extraClasses = seedExtraClasses();
+              return ch;
+            })(),
             (function () { const s = mkNode("学生管理", "#2d8659", "students"); s.classes = []; return s; })(),
           ];
           return p;
@@ -285,6 +310,8 @@
     n.classes = n.classes || [];
     n.newsItems = n.newsItems || [];
     n.newsType = n.newsType || "korean";
+    n.routineClasses = n.routineClasses || [];
+    n.extraClasses = n.extraClasses || [];
     n.children.forEach(normalize);
     // Ensure each class has columnOrder and hiddenCols
     n.classes.forEach((c) => {
@@ -303,7 +330,7 @@
       const slytherinColors = {
         "待办": "#c9a84c", "绵飞院": "#3a9b6e", "教学": "#5b8db8",
         "学生管理": "#2d8659", "资讯": "#b8c4cc", "硕士申请": "#6b9b7d",
-        "高职资讯": "#7a8a6d", "咨询": "#b8c4cc"
+        "高职资讯": "#7a8a6d", "咨询": "#b8c4cc", "课时记录": "#a06cd5"
       };
       data.tasks.forEach((t) => {
         if (slytherinColors[t.name]) t.color = slytherinColors[t.name];
@@ -313,7 +340,25 @@
           t.children = t.children || [];
           const has = (nm) => t.children.some((c) => c.name === nm);
           if (!has("教学")) t.children.push(mkNode("教学", "#5b8db8"));
+          if (!has("课时记录")) {
+            const ch = mkNode("课时记录", "#a06cd5", "classhour");
+            ch.routineClasses = seedRoutineClasses();
+            ch.extraClasses = seedExtraClasses();
+            t.children.push(ch);
+          }
           if (!has("学生管理")) { const s = mkNode("学生管理", "#2d8659", "students"); s.classes = []; t.children.push(s); }
+          t.children.forEach((c) => { if (slytherinColors[c.name]) c.color = slytherinColors[c.name]; });
+        }
+        // 迁移：绵飞院 已有但缺课时记录时补齐
+        if (t.name === "绵飞院") {
+          t.children = t.children || [];
+          const has = (nm) => t.children.some((c) => c.name === nm);
+          if (!has("课时记录")) {
+            const ch = mkNode("课时记录", "#a06cd5", "classhour");
+            ch.routineClasses = seedRoutineClasses();
+            ch.extraClasses = seedExtraClasses();
+            t.children.push(ch);
+          }
           t.children.forEach((c) => { if (slytherinColors[c.name]) c.color = slytherinColors[c.name]; });
         }
         // 迁移：咨询 -> 资讯，并补齐硕士申请、高职资讯子任务
@@ -523,6 +568,9 @@
     // 资讯卡片（仅 news 类）
     if (t.type === "news") { $("#newsPanel").hidden = false; renderNewsCards(t); }
     else $("#newsPanel").hidden = true;
+    // 课时记录（仅 classhour 类）
+    if (t.type === "classhour") { $("#classhourPanel").hidden = false; renderClasshourPanel(t); }
+    else $("#classhourPanel").hidden = true;
     renderFiles(t.id);
   }
 
@@ -705,6 +753,177 @@
       box.appendChild(card);
     });
   }
+
+  // ============================================
+  // 课时记录（classhour 类型）
+  // ============================================
+  function renderClasshourPanel(t) {
+    const routine = t.routineClasses || [];
+    const extra = t.extraClasses || [];
+    // 按月份分组
+    const monthMap = {};
+    routine.forEach((it) => {
+      const ym = (it.date || "").slice(0, 7);
+      if (!ym) return;
+      monthMap[ym] = monthMap[ym] || { routine: 0, extra: 0, routineItems: [], extraItems: [] };
+      monthMap[ym].routine += Number(it.hours) || 0;
+      monthMap[ym].routineItems.push(it);
+    });
+    extra.forEach((it) => {
+      const ym = (it.date || "").slice(0, 7);
+      if (!ym) return;
+      monthMap[ym] = monthMap[ym] || { routine: 0, extra: 0, routineItems: [], extraItems: [] };
+      monthMap[ym].extra += Number(it.hours) || 0;
+      monthMap[ym].extraItems.push(it);
+    });
+    const months = Object.keys(monthMap).sort().reverse();
+    const totalRoutine = routine.reduce((s, c) => s + (Number(c.hours) || 0), 0);
+    const totalExtra = extra.reduce((s, c) => s + (Number(c.hours) || 0), 0);
+    // 顶部三个统计卡
+    const summaryBox = $("#classhourSummary");
+    summaryBox.innerHTML =
+      '<div class="ch-stat"><span class="ch-stat-num">' + totalRoutine + '</span><span class="ch-stat-label">常规课时</span></div>' +
+      '<div class="ch-stat ch-stat-extra"><span class="ch-stat-num">' + totalExtra + '</span><span class="ch-stat-label">临时加课</span></div>' +
+      '<div class="ch-stat ch-stat-total"><span class="ch-stat-num">' + (totalRoutine + totalExtra) + '</span><span class="ch-stat-label">合计</span></div>';
+    // 月份分组
+    const monthsBox = $("#classhourMonths");
+    if (!months.length) {
+      monthsBox.innerHTML = '<p class="ch-empty">暂无课时记录，点击下方按钮开始录入。</p>';
+    } else {
+      monthsBox.innerHTML = "";
+      months.forEach((ym) => {
+        const m = monthMap[ym];
+        const block = document.createElement("div");
+        block.className = "ch-month-block";
+        const [yy, mm] = ym.split("-");
+        const total = m.routine + m.extra;
+        block.innerHTML =
+          '<div class="ch-month-head">' +
+            '<span class="ch-month-title">' + yy + ' 年 ' + Number(mm) + ' 月</span>' +
+            '<span class="ch-month-meta">常规 <b>' + m.routine + '</b> · 临时 <b>' + m.extra + '</b> · 合计 <b>' + total + '</b></span>' +
+          '</div>' +
+          '<div class="ch-table-wrap">' +
+            '<table class="ch-table">' +
+              '<thead><tr><th>日期</th><th>类型</th><th>课程</th><th>课时</th><th>地点</th><th>备注</th><th>操作</th></tr></thead>' +
+              '<tbody></tbody>' +
+            '</table>' +
+          '</div>';
+        const tbody = block.querySelector("tbody");
+        const items = [
+          ...m.routineItems.map((c) => ({ ...c, _type: "routine" })),
+          ...m.extraItems.map((c) => ({ ...c, _type: "extra" })),
+        ].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+        items.forEach((it) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML =
+            '<td></td><td></td><td></td><td></td><td></td><td></td><td></td>';
+          const tds = tr.children;
+          tds[0].textContent = it.date || "";
+          tds[1].innerHTML = it._type === "routine"
+            ? '<span class="ch-tag ch-tag-routine">常规</span>'
+            : '<span class="ch-tag ch-tag-extra">临时</span>';
+          tds[2].textContent = it.courseName || "";
+          tds[3].textContent = it.hours || 0;
+          tds[4].textContent = it.location || "";
+          tds[5].textContent = it.note || "";
+          const delBtn = document.createElement("button");
+          delBtn.className = "ch-del-btn";
+          delBtn.textContent = "🗑";
+          delBtn.title = "删除";
+          delBtn.addEventListener("click", () => deleteClasshour(it.id, it._type));
+          tds[6].appendChild(delBtn);
+          tbody.appendChild(tr);
+        });
+        monthsBox.appendChild(block);
+      });
+    }
+  }
+
+  async function addRoutineClass() {
+    const t = currentTask();
+    const date = await customPrompt("日期（格式 YYYY-MM-DD）：", new Date().toISOString().slice(0, 10));
+    if (!date || !date.trim()) return;
+    const courseName = await customPrompt("课程名称：", "");
+    if (!courseName || !courseName.trim()) return;
+    const hoursStr = await customPrompt("课时数：", "2");
+    if (!hoursStr) return;
+    const hours = Number(hoursStr);
+    if (!hours || hours <= 0) return;
+    const location = await customPrompt("地点：", "");
+    if (location === null) return;
+    const note = await customPrompt("备注（可留空）：", "");
+    if (note === null) return;
+    t.routineClasses = t.routineClasses || [];
+    t.routineClasses.push({ id: uid(), date: date.trim(), courseName: courseName.trim(), hours, location: location || "", note: note || "" });
+    renderClasshourPanel(t); scheduleSave();
+  }
+
+  async function addExtraClass() {
+    const t = currentTask();
+    const date = await customPrompt("日期（格式 YYYY-MM-DD）：", new Date().toISOString().slice(0, 10));
+    if (!date || !date.trim()) return;
+    const courseName = await customPrompt("课程名称：", "临时加课");
+    if (!courseName || !courseName.trim()) return;
+    const hoursStr = await customPrompt("课时数：", "2");
+    if (!hoursStr) return;
+    const hours = Number(hoursStr);
+    if (!hours || hours <= 0) return;
+    const note = await customPrompt("备注（留空=不关联常规课）：", "");
+    if (note === null) return;
+    t.extraClasses = t.extraClasses || [];
+    t.extraClasses.push({ id: uid(), date: date.trim(), courseName: courseName.trim(), hours, note: note || "" });
+    renderClasshourPanel(t); scheduleSave();
+  }
+
+  function deleteClasshour(id, type) {
+    const t = currentTask();
+    const listKey = type === "routine" ? "routineClasses" : "extraClasses";
+    if (!t[listKey]) return;
+    const idx = t[listKey].findIndex((x) => x.id === id);
+    if (idx === -1) return;
+    t[listKey].splice(idx, 1);
+    renderClasshourPanel(t); scheduleSave();
+  }
+
+  function exportClasshourExcel() {
+    const t = currentTask();
+    const routine = t.routineClasses || [];
+    const extra = t.extraClasses || [];
+    if (!routine.length && !extra.length) { showToast("暂无课时记录"); return; }
+    const wb = XLSX.utils.book_new();
+    const rows = [];
+    rows.push(["日期", "类型", "课程", "课时", "地点", "备注"]);
+    const all = [
+      ...routine.map((c) => ({ ...c, _type: "常规" })),
+      ...extra.map((c) => ({ ...c, _type: "临时" })),
+    ].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    all.forEach((it) => {
+      rows.push([it.date || "", it._type, it.courseName || "", it.hours || 0, it.location || "", it.note || ""]);
+    });
+    // 月度合计
+    const monthMap = {};
+    all.forEach((it) => {
+      const ym = (it.date || "").slice(0, 7);
+      if (!ym) return;
+      monthMap[ym] = monthMap[ym] || { routine: 0, extra: 0 };
+      if (it._type === "常规") monthMap[ym].routine += Number(it.hours) || 0;
+      else monthMap[ym].extra += Number(it.hours) || 0;
+    });
+    rows.push([]);
+    rows.push(["月份", "常规课时", "临时加课", "合计"]);
+    Object.keys(monthMap).sort().forEach((ym) => {
+      const m = monthMap[ym];
+      rows.push([ym, m.routine, m.extra, m.routine + m.extra]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, "课时记录");
+    const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    downloadBlob(new Blob([out], { type: "application/octet-stream" }), "课时记录.xlsx");
+  }
+
+  $("#addRoutineClassBtn").addEventListener("click", addRoutineClass);
+  $("#addExtraClassBtn").addEventListener("click", addExtraClass);
+  $("#exportClasshourBtn").addEventListener("click", exportClasshourExcel);
 
   // ---------- 班级管理 ----------
   function renderClassCards(t) {
